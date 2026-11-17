@@ -136,6 +136,7 @@ func (p credentialProviderConfig) validate() error {
 
 // routerConfig holds deployment setup and endpoint options for the router node instance.
 type routerConfig struct {
+	VPCProxyConfigFile string
 	// Mode is the one traffic direction this instance serves. Required.
 	Mode         Mode
 	AtenetRouter string
@@ -288,6 +289,9 @@ func (c routerConfig) drainTimeout(parkCfg ingress.ParkedRequestConfig) time.Dur
 // validate rejects flag combinations that would make the router misbehave
 // rather than merely differ.
 func (c routerConfig) validate() error {
+	if c.VPCProxyConfigFile != "" && (!c.Mode.ServesEgress() || c.atenetRouter() != atenetRouterEnvoy) {
+		return fmt.Errorf("--vpc-proxy-config requires Envoy egress")
+	}
 	switch c.atenetRouter() {
 	case atenetRouterEnvoy, atenetRouterAgentgateway:
 	default:

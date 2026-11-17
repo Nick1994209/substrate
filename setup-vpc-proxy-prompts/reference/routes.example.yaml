@@ -1,0 +1,22 @@
+# TEMPLATE, NOT RUNTIME DATA. Render MUST replace tokens with real server UIDs.
+# LoadFile must reject unreplaced tokens, empty UID, duplicate actor names.
+apiVersion: vpc-proxy.substrate.local/v1alpha1
+kind: ActorEgressRoutes
+routes:
+  - actor:
+      atespace: ate-demo-egress
+      name: actor-1
+      uid: REPLACE_WITH_ACTOR_1_SERVER_UID
+    mode: proxy
+    cluster: vpc_proxy_1
+  - actor:
+      atespace: ate-demo-egress
+      name: actor-2
+      uid: REPLACE_WITH_ACTOR_2_SERVER_UID
+    mode: proxy
+    cluster: vpc_proxy_2
+  - actor:
+      atespace: ate-demo-egress
+      name: actor-3
+      uid: REPLACE_WITH_ACTOR_3_SERVER_UID
+    mode: direct

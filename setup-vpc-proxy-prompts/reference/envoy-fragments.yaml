@@ -1,0 +1,140 @@
+# PATCH CONTRACT, not a complete Envoy bootstrap.
+# cmd/render must merge into the ACTUAL baseline outer egress HCM only.
+# All legacy inner listeners/filters/SDS and identity settings stay intact.
+
+sanitation_filter_before_ext_proc:
+  name: envoy.filters.http.lua
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+    inline_code: |
+      function envoy_on_request(handle)
+        handle:headers():remove("x-ate-vpc-cluster")
+      end
+
+# Prepend these routes to existing CONNECT -> mitm_internal.
+proxy_routes:
+  - name: actor_proxy_1
+    match:
+      connect_matcher: {}
+      headers:
+        - name: x-ate-vpc-cluster
+          string_match: {exact: vpc_proxy_1}
+    route:
+      cluster: vpc_proxy_1
+      timeout: 0s
+      upgrade_configs:
+        - upgrade_type: CONNECT
+          enabled: true
+          # NO connect_config here: forward CONNECT to Go proxy.
+
+  - name: actor_proxy_2
+    match:
+      connect_matcher: {}
+      headers:
+        - name: x-ate-vpc-cluster
+          string_match: {exact: vpc_proxy_2}
+    route:
+      cluster: vpc_proxy_2
+      timeout: 0s
+      upgrade_configs:
+        - upgrade_type: CONNECT
+          enabled: true
+
+  - name: reject_unrecognized_proxy_binding
+    match:
+      connect_matcher: {}
+      headers:
+        - name: x-ate-vpc-cluster
+          present_match: true
+    direct_response: {status: 403}
+
+# Existing route must follow, with its baseline connect_config:{}:
+legacy_route_reference:
+  match: {connect_matcher: {}}
+  route:
+    cluster: mitm_internal
+    timeout: 0s
+    upgrade_configs:
+      - upgrade_type: CONNECT
+        connect_config: {}
+
+proxy_clusters:
+  - name: vpc_proxy_1
+    type: STRICT_DNS
+    connect_timeout: 3s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: vpc_proxy_1
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: proxy-vpc-pod-1.vpc-proxy.svc.cluster.local
+                    port_value: 8443
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: proxy-vpc-pod-1.vpc-proxy.svc.cluster.local
+        common_tls_context:
+          alpn_protocols: [http/1.1]
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_3
+          tls_certificates:
+            - certificate_chain:
+                filename: /etc/vpc-proxy/client-1/tls.crt
+              private_key:
+                filename: /etc/vpc-proxy/client-1/tls.key
+          validation_context:
+            trusted_ca:
+              filename: /etc/vpc-proxy/client-1/ca.crt
+            match_typed_subject_alt_names:
+              - san_type: URI
+                matcher:
+                  exact: spiffe://vpc-proxy.local/proxy/proxy-1
+
+  - name: vpc_proxy_2
+    type: STRICT_DNS
+    connect_timeout: 3s
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: vpc_proxy_2
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: proxy-vpc-pod-2.vpc-proxy.svc.cluster.local
+                    port_value: 8443
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http_protocol_options: {}
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: proxy-vpc-pod-2.vpc-proxy.svc.cluster.local
+        common_tls_context:
+          alpn_protocols: [http/1.1]
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_3
+          tls_certificates:
+            - certificate_chain:
+                filename: /etc/vpc-proxy/client-2/tls.crt
+              private_key:
+                filename: /etc/vpc-proxy/client-2/tls.key
+          validation_context:
+            trusted_ca:
+              filename: /etc/vpc-proxy/client-2/ca.crt
+            match_typed_subject_alt_names:
+              - san_type: URI
+                matcher:
+                  exact: spiffe://vpc-proxy.local/proxy/proxy-2

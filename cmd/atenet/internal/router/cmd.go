@@ -49,6 +49,7 @@ func NewRouterCmd() *cobra.Command {
 
 // bindRouterFlags registers the router's flags on fs, writing into cfg.
 func bindRouterFlags(fs *pflag.FlagSet, cfg *routerConfig) {
+	fs.StringVar(&cfg.VPCProxyConfigFile, "vpc-proxy-config", "", "Opt-in actor-aware egress registry YAML")
 	fs.StringVar((*string)(&cfg.Mode), "mode", "", fmt.Sprintf("Required. Traffic direction this instance serves: %q (also runs the ingress control plane — the xDS server — for an Envoy dataplane) or %q (ext_proc only, needs no Kubernetes access). The ext_proc mux refuses the other direction rather than falling back to it", ModeIngress, ModeEgress))
 
 	fs.StringVar(&cfg.LogLevel, "log-level", "info", "Log level: debug, info, warn, error")

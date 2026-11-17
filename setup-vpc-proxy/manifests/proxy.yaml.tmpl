@@ -1,0 +1,114 @@
+# Copyright 2026 The Agent Substrate Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy-vpc-pod-{{.ID}}
+  namespace: vpc-proxy
+  labels:
+    app.kubernetes.io/part-of: setup-vpc-proxy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: actor-vpc-proxy
+      proxy-id: "{{.ID}}"
+  template:
+    metadata:
+      annotations:
+        vpc-proxy.substrate.local/cert-hash: "{{.CertHash}}"
+      labels:
+        app: actor-vpc-proxy
+        proxy-id: "{{.ID}}"
+    spec:
+      automountServiceAccountToken: false
+      hostNetwork: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: proxy
+          image: {{.ProxyImage}}
+          args:
+            - --listen=:8443
+            - --tls-cert=/etc/proxy/tls/tls.crt
+            - --tls-key=/etc/proxy/tls/tls.key
+            - --client-ca=/etc/proxy/tls/ca.crt
+            - --allowed-client-uri=spiffe://vpc-proxy.local/egress/proxy-{{.ID}}
+            - --proxy-id=proxy-vpc-pod-{{.ID}}
+            - --max-tunnels=128
+            - --dial-timeout=5s
+            - --tunnel-idle-timeout=60s
+            - --max-tunnel-duration=5m
+            - --health-listen=127.0.0.1:9090
+          ports:
+            - name: mtls-connect
+              containerPort: 8443
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: "1"
+              memory: 128Mi
+          readinessProbe:
+            exec:
+              command: [/ko-app/proxy, --check-ready]
+            periodSeconds: 3
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command: [/ko-app/proxy, --check-ready]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/proxy/tls
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: proxy-{{.ID}}-server-tls
+            defaultMode: 0440
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-vpc-pod-{{.ID}}
+  namespace: vpc-proxy
+  labels:
+    app.kubernetes.io/part-of: setup-vpc-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: actor-vpc-proxy
+    proxy-id: "{{.ID}}"
+  ports:
+    - name: mtls-connect
+      port: 8443
+      targetPort: mtls-connect

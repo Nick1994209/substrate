@@ -1,0 +1,14 @@
+flowchart LR
+    A1["actor-1 · gVisor"] --> T1["atunnel actor-1"]
+    A2["actor-2 · gVisor"] --> T2["atunnel actor-2"]
+    A3["actor-3 · gVisor"] --> T3["atunnel actor-3"]
+    T1 -->|"actor mTLS + CONNECT IP:port"| E["atenet-egress · Envoy + modified ext-proc"]
+    T2 -->|"actor mTLS + CONNECT IP:port"| E
+    T3 -->|"actor mTLS + CONNECT IP:port"| E
+    E -. "authenticated UID → explicit route" .-> R["routes ConfigMap · immutable registry"]
+    E -->|"client-1 / server-1 mTLS"| P1["proxy-vpc-pod-1 · Go CONNECT"]
+    E -->|"client-2 / server-2 mTLS"| P2["proxy-vpc-pod-2 · Go CONNECT"]
+    E -->|"actor-3 direct only"| D["baseline EgressPolicy pipeline"]
+    P1 --> I["Public Internet · allowed TCP 80/443"]
+    P2 --> I
+    D --> I
