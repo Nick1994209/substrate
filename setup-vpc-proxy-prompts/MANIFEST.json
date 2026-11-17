@@ -1,0 +1,107 @@
+{
+  "format": "prompt-pack-v1",
+  "purpose": "Implementation prompts, not tested MVP implementation",
+  "baseline": "ed0371a15f6f265c64100001adafb9731be03970",
+  "files": [
+    {
+      "path": "01_contract.md",
+      "bytes": 5486,
+      "sha256": "27ac100c22c42743342f702bbbefe6652175ef9fc98a02e9e1d0d2cd86b8434d"
+    },
+    {
+      "path": "02_kind_substrate.md",
+      "bytes": 7049,
+      "sha256": "1e6a12dda191c1ec0907218e4893dc992210373c23663fca630e1f18016aeac8"
+    },
+    {
+      "path": "03_registry_egress_code.md",
+      "bytes": 8179,
+      "sha256": "9a3300292bc22bd4f70db4e9d1adf66bc83790773aec0be454b00d75351cf048"
+    },
+    {
+      "path": "04_proxy_code.md",
+      "bytes": 7602,
+      "sha256": "d64239b7b63371149a7ac01becb8bdd844a49add3f476479bdc482c54c159c4a"
+    },
+    {
+      "path": "05_envoy_pki_yaml.md",
+      "bytes": 8800,
+      "sha256": "24db0870372bb6d89bb9cb082352e871d86feb8e8ce6db607c663ea3d3a6bd98"
+    },
+    {
+      "path": "06_deploy_automation.md",
+      "bytes": 6751,
+      "sha256": "c799eae16822480be1af3b74a501cd84fc75bd4c236908a26e15716bdd2dc7d7"
+    },
+    {
+      "path": "07_tests.md",
+      "bytes": 9452,
+      "sha256": "6da97c1df644ff2ae0ff9457914ddc584a42fdfd497ed130b27caafb1b4e3662"
+    },
+    {
+      "path": "08_security_review.md",
+      "bytes": 4402,
+      "sha256": "4f33fd3772b4063ceb9f54217ef357e0ac04d1126b47c855a64edfefa6d7bc91"
+    },
+    {
+      "path": "09_handoff.md",
+      "bytes": 2415,
+      "sha256": "9d1efa53f2a69cba20617869490f83ebab5fddb468814108b41dd48eab1110fd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5890,
+      "sha256": "e136f640914a7b6053469efbbde2d4189242439762fe68f8deff2e6b0403e843"
+    },
+    {
+      "path": "SOURCES.md",
+      "bytes": 4463,
+      "sha256": "5f6139493d934c3b30cda9a337aa512a13ebf6732850b0fbba09d64a800181bf"
+    },
+    {
+      "path": "init_prompt.md",
+      "bytes": 9404,
+      "sha256": "ef3be0befb0d3fe4751a97c6e212bf54cfaefb6f2ef2d822118d634d5672f166"
+    },
+    {
+      "path": "reference/architecture.mmd",
+      "bytes": 748,
+      "sha256": "ea03e9f8dc39df578fa30fe8619a630bbabdb4b637609c9f9ea0b0d0eead8f76"
+    },
+    {
+      "path": "reference/code-contract.go.txt",
+      "bytes": 2744,
+      "sha256": "97e34bed965953587720d2804a447ef54e85e54e0f015f1ccd32f258b3b04191"
+    },
+    {
+      "path": "reference/egress-hook.go.txt",
+      "bytes": 4663,
+      "sha256": "f27009b7d64cce672b7c5fe392701aa6fe8536e467f05808bcbc14ccc53369ad"
+    },
+    {
+      "path": "reference/envoy-fragments.yaml",
+      "bytes": 4642,
+      "sha256": "6ab9015d3a7168954d65666f1e50ac0f45e355bd0a68441ae34a94876b7ef03d"
+    },
+    {
+      "path": "reference/mtls.go.txt",
+      "bytes": 2264,
+      "sha256": "e5244d43902cbc523478c22bd83a25a62de31d3033445548d679a8ca8c8f1c66"
+    },
+    {
+      "path": "reference/networkpolicies.yaml",
+      "bytes": 2188,
+      "sha256": "dc829b09e0a89c78c1fb791d609efc988ec5ddaf9fc67d75de81881eb9e55b4b"
+    },
+    {
+      "path": "reference/proxy.yaml.tmpl",
+      "bytes": 2672,
+      "sha256": "d6a18c1cfaf573901e1da77549217089a41eaca18d53790ef4cc318c8d8484b8"
+    },
+    {
+      "path": "reference/routes.example.yaml",
+      "bytes": 652,
+      "sha256": "93705a8f0a005b920b317c75f8eec474aa43a3691555d1961872eca411cc1403"
+    }
+  ]
+}

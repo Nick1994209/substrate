@@ -1,0 +1,74 @@
+// IMPLEMENTATION CONTRACT, NOT A COMPLETE SOURCE FILE.
+// These declarations are new proposed API, not existing upstream symbols.
+// Implement them in setup-vpc-proxy/pkg/bindings under root module.
+package bindings
+
+import "errors"
+
+type Mode string
+const (
+    ModeProxy Mode = "proxy"
+    ModeDirect Mode = "direct"
+    ModeRevoked Mode = "revoked"
+)
+
+var (
+    ErrUnknownActor = errors.New("actor has no explicit egress binding")
+    ErrUIDMismatch = errors.New("actor UID does not match binding")
+)
+
+type ActorKey struct {
+    Atespace string `json:"atespace"`
+    Name string `json:"name"`
+    UID string `json:"uid"`
+}
+type Route struct {
+    Actor ActorKey `json:"actor"`
+    Mode Mode `json:"mode"`
+    Cluster string `json:"cluster,omitempty"`
+}
+type FileConfig struct {
+    APIVersion string `json:"apiVersion"`
+    Kind string `json:"kind"`
+    Routes []Route `json:"routes"`
+}
+type Decision struct {
+    Mode Mode
+    Cluster string
+}
+type actorName struct { atespace, name string }
+type Registry struct { routes map[actorName]Route }
+
+// Implement all bodies with strict validation; don't paste declarations alone.
+// Supported API version vpc-proxy.substrate.local/v1alpha1, kind ActorEgressRoutes.
+func LoadFile(path string) (*Registry, error)
+func New(cfg FileConfig) (*Registry, error)
+func (r *Registry) Resolve(atespace, name, currentUID string) (Decision, error)
+
+// Shared production destination checker, separate package:
+// package netpolicy
+// func CheckPublicTarget(ip netip.Addr, port uint16) error
+// Initial MVP: IPv4-only public targets, TCP 80/443. Explicitly deny IPv6.
+// Explicit special/private deny list; do not rely on IsGlobalUnicast alone.
+
+// Proxy library public contract (adapt naming only if tested and documented):
+// package connectproxy
+// type Config struct {
+//     Listen string
+//     TLSCert, TLSKey, ClientCA, AllowedClientURI, ProxyID string
+//     MaxTunnels int
+//     DialTimeout, TunnelIdleTimeout, MaxTunnelDuration time.Duration
+//     HealthListen string
+// }
+// func NewServer(cfg Config) (*Server, error)
+// func (s *Server) Run(ctx context.Context) error
+// Server.Run creates TLS listener, health listener, handles ctx cancellation,
+// drains tracked hijacked conns with a bounded deadline.
+// Test-only injected policy/dial must not create an insecure production flag.
+
+// Renderer contract:
+// Read baseline runtime ConfigMap/Deployment YAML, routes YAML and image refs.
+// Emit Kubernetes manifests + complete Envoy YAML, never fragments only.
+// Assert exactly two proxy clusters + routes before legacy + reject unknown header.
+// Add mounts to correct existing named containers, no whole-Deployment replacement.
+// Each mutation must be idempotent and baseline shape-aware.

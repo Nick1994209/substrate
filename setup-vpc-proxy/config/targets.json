@@ -1,0 +1,4 @@
+{
+  "fetch": "https://example.com/",
+  "literal": "https://1.1.1.1/cdn-cgi/trace"
+}

@@ -1,0 +1,39 @@
+# Copyright 2026 The Agent Substrate Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Сокращённый экспорт трёх объектов Substrate API. UID назначает сервер.
+# Команды создания приведены в usage-example.md.
+metadata:
+  atespace: ate-demo-egress
+  name: actor-1
+  uid: c2f8fdf1-c611-4b50-8a76-bf7724cb402d
+actorTemplate:
+  atespace: ate-demo-egress
+  name: egress
+---
+metadata:
+  atespace: ate-demo-egress
+  name: actor-2
+  uid: ede80a2a-7d2c-4e60-a202-363607548d08
+actorTemplate:
+  atespace: ate-demo-egress
+  name: egress
+---
+metadata:
+  atespace: ate-demo-egress
+  name: actor-3
+  uid: b46e1beb-f174-4f33-a614-cb29c0d6c9a0
+actorTemplate:
+  atespace: ate-demo-egress
+  name: egress

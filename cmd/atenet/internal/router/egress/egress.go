@@ -47,6 +47,7 @@ import (
 	"go.ate.dev/substrate/cmd/atenet/internal/router/extproc"
 	"go.ate.dev/substrate/internal/egresspolicy"
 	"go.ate.dev/substrate/internal/resources"
+	"go.ate.dev/substrate/setup-vpc-proxy/pkg/bindings"
 )
 
 const (
@@ -77,7 +78,8 @@ const deniedBody = "egress denied"
 // Handler authenticates the actor behind each egress CONNECT and authorizes
 // the traffic inside the tunnel against the actor's EgressPolicy.
 type Handler struct {
-	apiClient ateapi.ControlClient
+	vpcProxyRegistry *bindings.Registry
+	apiClient        ateapi.ControlClient
 	// loadActorIdentityRoots yields the actor-identity CA bundle every actor
 	// certificate must chain to. An error fails the CONNECT closed.
 	loadActorIdentityRoots func() (*x509.CertPool, error)
@@ -103,19 +105,23 @@ type Handler struct {
 // TLS-terminated MITM leg; none leaves them off, so a request that needs one is
 // denied. Actor JWT injections need no provider. See Handler.providers for the
 // map definition.
-func New(apiClient ateapi.ControlClient, loadActorIdentityRoots func() (*x509.CertPool, error), policyCacheTTL time.Duration, providers map[string]credprovider.CredentialProviderClient) *Handler {
+func New(apiClient ateapi.ControlClient, loadActorIdentityRoots func() (*x509.CertPool, error), policyCacheTTL time.Duration, providers map[string]credprovider.CredentialProviderClient, opts ...Option) *Handler {
 	if loadActorIdentityRoots == nil {
 		loadActorIdentityRoots = func() (*x509.CertPool, error) {
 			return nil, errors.New("no actor-identity CA configured")
 		}
 	}
-	return &Handler{
+	h := &Handler{
 		apiClient:              apiClient,
 		loadActorIdentityRoots: loadActorIdentityRoots,
 		policies:               newPolicyCache(apiClient, policyCacheTTL),
 		actorJWTs:              actorjwt.New(apiClient),
 		providers:              providers,
 	}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
 }
 
 func (h *Handler) Direction() extproc.Direction { return extproc.DirectionEgress }
@@ -168,7 +174,8 @@ func (h *Handler) handleConnect(ctx context.Context, md *extproc.RequestMetadata
 			"egress denied: invalid actor certificate")
 	}
 
-	if err := h.validateActor(ctx, actorRef, md.Host); err != nil {
+	actor, err := h.validateActor(ctx, actorRef, md.Host)
+	if err != nil {
 		return extproc.Result{}, err
 	}
 
@@ -180,6 +187,10 @@ func (h *Handler) handleConnect(ctx context.Context, md *extproc.RequestMetadata
 	if err != nil || !dest.IP.IsValid() || dest.Port == 0 {
 		slog.WarnContext(ctx, "egress denied: CONNECT authority is not an IP:port", slog.Any("actor", ref), slog.String("leg", leg), slog.String("authority", md.Host), slog.Any("err", err))
 		return extproc.Result{}, extproc.NewReqError(envoy_type.StatusCode_Forbidden, deniedBody)
+	}
+
+	if res, handled, err := h.routeVPCProxy(ctx, ref, actor, dest); handled || err != nil {
+		return res, err
 	}
 
 	// This also warms the cache for the requests inside the tunnel, and
@@ -276,14 +287,14 @@ func (h *Handler) lookupPolicy(ctx context.Context, leg string, ref resources.Ac
 // plane's current view of that actor: it still exists and it is placed on a
 // worker. A refusal is logged with destination. Every error it returns is
 // already a client-facing ext_proc denial.
-func (h *Handler) validateActor(ctx context.Context, actorRef resources.ActorRef, destination string) error {
+func (h *Handler) validateActor(ctx context.Context, actorRef resources.ActorRef, destination string) (*ateapi.Actor, error) {
 	// Confirm the certified actor still exists.
 	// TODO: this can cause heavy load on ate api server. Change it based on https://github.com/agent-substrate/substrate/issues/592.
 	actor, err := h.apiClient.GetActor(ctx, &ateapi.GetActorRequest{
 		Actor: &ateapi.ObjectRef{Atespace: actorRef.Atespace, Name: actorRef.Name},
 	})
 	if err != nil {
-		return mapEgressIdentityError(actorRef.Atespace, actorRef.Name, err)
+		return nil, mapEgressIdentityError(actorRef.Atespace, actorRef.Name, err)
 	}
 
 	// The actor performing egress must be placed on a worker. RESUMING is
@@ -292,11 +303,11 @@ func (h *Handler) validateActor(ctx context.Context, actorRef resources.ActorRef
 	// has left its worker or is leaving it.
 	switch state := actor.GetStatus().GetState(); state {
 	case ateapi.ActorState_ACTOR_STATE_RUNNING, ateapi.ActorState_ACTOR_STATE_RESUMING:
-		return nil
+		return actor, nil
 	default:
 		slog.WarnContext(ctx, "egress denied: actor is not placed on a worker",
 			slog.Any("actor", actorRef), slog.String("state", state.String()), slog.String("destination", destination))
-		return extproc.NewReqError(envoy_type.StatusCode_Forbidden,
+		return nil, extproc.NewReqError(envoy_type.StatusCode_Forbidden,
 			"egress denied: actor %q/%q is %s, not placed on a worker", actorRef.Atespace, actorRef.Name, state)
 	}
 }

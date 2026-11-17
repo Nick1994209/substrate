@@ -1,0 +1,91 @@
+# MVP IPv4-only public egress. Concrete example; render MUST append actual
+# pod/service/node/docker bridge CIDRs to deny list, ensuring no duplicate entries.
+# Do not assert enforcement before CNI conformance test.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-default-deny
+  namespace: vpc-proxy
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-ingress-from-egress-only
+  namespace: vpc-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app: actor-vpc-proxy
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ate-system
+          podSelector:
+            matchLabels:
+              app: atenet-egress
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: proxy-public-egress
+  namespace: vpc-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app: actor-vpc-proxy
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 0.0.0.0/8
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.0.0.0/24
+              - 192.0.2.0/24
+              - 192.88.99.0/24
+              - 192.168.0.0/16
+              - 198.18.0.0/15
+              - 198.51.100.0/24
+              - 203.0.113.0/24
+              - 224.0.0.0/4
+              - 240.0.0.0/4
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-to-actor-proxies
+  namespace: ate-system
+spec:
+  podSelector:
+    matchLabels:
+      app: atenet-egress
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vpc-proxy
+          podSelector:
+            matchLabels:
+              app: actor-vpc-proxy
+      ports:
+        - protocol: TCP
+          port: 8443

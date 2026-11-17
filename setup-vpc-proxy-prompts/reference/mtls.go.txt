@@ -1,0 +1,56 @@
+// REFERENCE: implement in setup-vpc-proxy/pkg/connectproxy/tls.go.
+// This is a concrete helper; agent must add tests and call it from NewServer.
+package connectproxy
+
+import (
+    "crypto/tls"
+    "crypto/x509"
+    "errors"
+    "fmt"
+    "net/url"
+    "os"
+)
+
+func ServerTLSConfig(certPath, keyPath, caPath, allowedURI string) (*tls.Config, error) {
+    expected, err := url.Parse(allowedURI)
+    if err != nil || expected == nil || expected.Scheme != "spiffe" ||
+        expected.Host != "vpc-proxy.local" || expected.User != nil ||
+        expected.RawQuery != "" || expected.Fragment != "" ||
+        (expected.Path != "/egress/proxy-1" && expected.Path != "/egress/proxy-2") {
+        return nil, errors.New("invalid allowed client SPIFFE URI")
+    }
+    leaf, err := tls.LoadX509KeyPair(certPath, keyPath)
+    if err != nil { return nil, fmt.Errorf("load serving keypair: %w", err) }
+    caPEM, err := os.ReadFile(caPath)
+    if err != nil { return nil, fmt.Errorf("load client CA: %w", err) }
+    roots := x509.NewCertPool()
+    if !roots.AppendCertsFromPEM(caPEM) {
+        return nil, errors.New("client CA contains no certificates")
+    }
+    return &tls.Config{
+        MinVersion: tls.VersionTLS13,
+        Certificates: []tls.Certificate{leaf},
+        ClientAuth: tls.RequireAndVerifyClientCert,
+        ClientCAs: roots,
+        NextProtos: []string{"http/1.1"},
+        VerifyConnection: func(cs tls.ConnectionState) error {
+            // tls.RequireAndVerifyClientCert has already checked CA/EKU/time.
+            if len(cs.VerifiedChains) == 0 || len(cs.PeerCertificates) == 0 {
+                return errors.New("verified client certificate required")
+            }
+            uris := cs.PeerCertificates[0].URIs
+            if len(uris) != 1 || uris[0].String() != allowedURI {
+                return errors.New("client identity rejected")
+            }
+            return nil
+        },
+    }, nil
+}
+
+// Required wiring:
+// cfg, err := ServerTLSConfig(... actual flags ...)
+// if err != nil { return err }
+// ln, err := net.Listen("tcp", listen)
+// tlsLn := tls.NewListener(ln, cfg)
+// httpServer.Serve(tlsLn) // not ServeTLS with independently altered config
+// Force HTTP/1.1 and test no HTTP/2 auto-enable. Validate flags before listen.

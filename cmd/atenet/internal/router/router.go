@@ -47,6 +47,7 @@ import (
 	"go.ate.dev/substrate/internal/preview"
 	"go.ate.dev/substrate/internal/serverboot"
 	"go.ate.dev/substrate/internal/version"
+	"go.ate.dev/substrate/setup-vpc-proxy/pkg/bindings"
 )
 
 // dataPlaneTraceRatio is the default root sampling fraction for parentless
@@ -255,7 +256,15 @@ func (s *RouterServer) Run(ctx context.Context) error {
 				slog.String("provider_name", providerName))
 		}
 
-		egressHandler := egress.New(s.apiClient, loadActorIdentityRoots, s.cfg.EgressPolicyCacheTTL, providers)
+		var opts []egress.Option
+		if s.cfg.VPCProxyConfigFile != "" {
+			reg, err := bindings.LoadFile(s.cfg.VPCProxyConfigFile)
+			if err != nil {
+				return fmt.Errorf("loading --vpc-proxy-config: %w", err)
+			}
+			opts = append(opts, egress.WithVPCProxyRegistry(reg))
+		}
+		egressHandler := egress.New(s.apiClient, loadActorIdentityRoots, s.cfg.EgressPolicyCacheTTL, providers, opts...)
 		handlers[egressHandler.Direction()] = egressHandler
 	}
 

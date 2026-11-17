@@ -1,0 +1,111 @@
+{
+  "actors": [
+    {
+      "actor": {
+        "atespace": "ate-demo-egress",
+        "name": "actor-1",
+        "uid": "c2f8fdf1-c611-4b50-8a76-bf7724cb402d"
+      },
+      "mode": "proxy",
+      "cluster": "vpc_proxy_1"
+    },
+    {
+      "actor": {
+        "atespace": "ate-demo-egress",
+        "name": "actor-2",
+        "uid": "ede80a2a-7d2c-4e60-a202-363607548d08"
+      },
+      "mode": "proxy",
+      "cluster": "vpc_proxy_2"
+    },
+    {
+      "actor": {
+        "atespace": "ate-demo-egress",
+        "name": "actor-3",
+        "uid": "b46e1beb-f174-4f33-a614-cb29c0d6c9a0"
+      },
+      "mode": "direct"
+    }
+  ],
+  "cluster_uid": "2e4bab21-d7c9-4774-a834-11490a85a98c",
+  "baseline_sha": "94e0a26ac90151886a76410568aaac2664a54d90",
+  "baseline_objects": {
+    "baseline-configmap.yaml": "d1188e329fbaa9d6986b506048099e0a523a2582028f121f76c2820342c23700",
+    "baseline-deployment.yaml": "e4bc70794b2adb6bbec7c5ac676d1271c48599f4a8de3f77be28d8ef84cd1b90"
+  },
+  "rendered": {
+    "images": {
+      "gateway": "localhost:5001/atenet-f8fa82c2577202c08e487b7d6887148f@sha256:6d5c8805e6542b2c52fb1d5bc91a1964df90ee28b8b6ba1a5458d0cb4bdba996",
+      "proxy": "localhost:5001/proxy-b2a61f8820faf9f81a404a7e90335ab6@sha256:f95ec42bcad05936e0649968023e6ee1b4b677321ef11574711bfbb5596490a2"
+    },
+    "config_sha256": "9f705069eb4a863ff42df30bc1b0ea79a0c2bca8637c21b481384375e116abc1"
+  },
+  "observed_date": "2026-11-06",
+  "verification": {
+    "unit": "PASS",
+    "preflight": "PASS",
+    "validation": "PASS",
+    "evidence": "PASS",
+    "literal-ip": "PASS",
+    "cni": "PASS",
+    "smoke": "PASS",
+    "mtls": "PASS",
+    "down-1": "PASS",
+    "down-2": "PASS",
+    "down-both": "PASS",
+    "extproc-outage": "PASS",
+    "policy-revoke": "PASS",
+    "actor-isolation": "PASS",
+    "envoy-san": "PASS",
+    "outer-sanitation": "PASS",
+    "unknown-actor": "PASS",
+    "uid-mismatch": "PASS",
+    "repeat": "PASS",
+    "rollback": "PASS",
+    "redeploy": "PASS"
+  },
+  "runtime_images": {
+    "envoy": "localhost:5001/envoy-dataplane@sha256:0fafd43d51c1f1d7f6f8b84dab0bdba95cd7b16d2725318cead3cc75ab4148a8",
+    "ext-proc": "localhost:5001/atenet-f8fa82c2577202c08e487b7d6887148f@sha256:6d5c8805e6542b2c52fb1d5bc91a1964df90ee28b8b6ba1a5458d0cb4bdba996"
+  },
+  "route_excerpt": [
+    {
+      "time": "2026-11-06T13:46:45.5533965Z",
+      "actor": {
+        "type": "*ateapi.Actor",
+        "atespace": "ate-demo-egress",
+        "name": "actor-1"
+      },
+      "actor_uid": "c2f8fdf1-c611-4b50-8a76-bf7724cb402d",
+      "mode": "proxy",
+      "cluster": "vpc_proxy_1",
+      "destination_ip": "172.66.147.243",
+      "destination_port": 443
+    },
+    {
+      "time": "2026-11-06T13:46:47.052406334Z",
+      "actor": {
+        "type": "*ateapi.Actor",
+        "atespace": "ate-demo-egress",
+        "name": "actor-2"
+      },
+      "actor_uid": "ede80a2a-7d2c-4e60-a202-363607548d08",
+      "mode": "proxy",
+      "cluster": "vpc_proxy_2",
+      "destination_ip": "172.66.147.243",
+      "destination_port": 443
+    },
+    {
+      "time": "2026-11-06T13:46:48.454308668Z",
+      "actor": {
+        "type": "*ateapi.Actor",
+        "atespace": "ate-demo-egress",
+        "name": "actor-3"
+      },
+      "actor_uid": "b46e1beb-f174-4f33-a614-cb29c0d6c9a0",
+      "mode": "direct",
+      "destination_ip": "172.66.147.243",
+      "destination_port": 443
+    }
+  ]
+}
